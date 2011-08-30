@@ -26,7 +26,8 @@ from systray import Systray
 class Snakefire(object):
 	DOMAIN = "snakefire.org"
 	NAME = "Snakefire"
-	DESCRIPTION = "Snakefire: Campfire Linux Client"
+	DESCRIPTION = "Snakefire"
+#	DESCRIPTION = "Snakefire: Campfire Linux Client"
 	VERSION = "1.0.1"
 	ICON = "snakefire.png"
 	COLORS = {
@@ -370,10 +371,14 @@ class Snakefire(object):
 			html = "<font color=\"#%s\">" % self.COLORS["join"]
 			html += "--&gt; %s joined %s" % (user, room.name)
 			html += "</font>"
+			if live:
+				self._notify(room, "%s joined %s" % (user, room.name))
 		elif message.is_leaving():
 			html = "<font color=\"#%s\">" % self.COLORS["leave"]
 			html += "&lt;-- %s has left %s" % (user, room.name)
 			html += "</font>"
+			if live:
+				self._notify(room, "%s left %s" % (user, room.name))
 		elif message.is_text():
 			body = self._plainTextToHTML(message.tweet["tweet"] if message.is_tweet() else message.body)
 			if message.is_tweet():
@@ -453,11 +458,12 @@ class Snakefire(object):
 			tabBar = self._tabs.tabBar()
 			isActiveTab = (self.isActiveWindow() and tabIndex == self._tabs.currentIndex())
 
-			if message.is_text() and not isActiveTab:
+			if live and message.is_text() and not isActiveTab:
 				self._rooms[room.id]["newMessages"] += 1
 
 			if self._rooms[room.id]["newMessages"] > 0:
 				tabBar.setTabText(tabIndex, "%s (%s)" % (room.name, self._rooms[room.id]["newMessages"]))
+				self.setWindowTitle("%s (%s)" % (self.NAME, self._rooms[room.id]["newMessages"]))
 
 			if not isActiveTab and (alert or self._rooms[room.id]["newMessages"] > 0) and tabBar.tabTextColor(tabIndex) == self.COLORS["tabs"]["normal"]:
 				tabBar.setTabTextColor(tabIndex, self.COLORS["tabs"]["alert" if alert else "new"])
@@ -465,7 +471,7 @@ class Snakefire(object):
 			if alert:
 				if not isActiveTab:
 					self._trayIcon.alert()
-				if notify:
+				if notify and live:
 					self._notify(room, message.body)
 
 		if updateRoom:
@@ -480,8 +486,9 @@ class Snakefire(object):
 		matches = False
 		regexes = []
 		words = [
-			"Mariano Iglesias",
-			"Mariano"
+			#Alerts go here e.g.
+			#	"Jim",
+			#	"Bob"
 		]
 		for word in words:
 			regexes.append("\\b%s\\b" % word)
@@ -661,6 +668,7 @@ class Snakefire(object):
 		if self._rooms[room.id]["newMessages"] > 0:
 			self._rooms[room.id]["newMessages"] = 0
 			tabBar.setTabText(tabIndex, room.name)
+			self.setWindowTitle(self.NAME)
 
 		if tabBar.tabTextColor(tabIndex) != self.COLORS["tabs"]["normal"]:
 			tabBar.setTabTextColor(tabIndex, self.COLORS["tabs"]["normal"])
